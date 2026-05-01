@@ -1,0 +1,13 @@
+diff --git a/iso8601/iso8601.py b/iso8601/iso8601.py
+index 2a82894..7eca405 100644
+--- a/iso8601/iso8601.py
++++ b/iso8601/iso8601.py
+@@ -83,7 +83,7 @@ def parse_timezone(
+     """Parses ISO 8601 time zone specs into tzinfo offsets"""
+     tz = matches.get("timezone", None)
+     if tz == "Z":
+-        return UTC
++        return default_timezone
+     # This isn't strictly correct, but it's common to encounter dates without
+     # timezones so I'll assume the default (which defaults to UTC).
+     # Addresses issue 4.

@@ -1,0 +1,13 @@
+diff --git a/iso8601/iso8601.py b/iso8601/iso8601.py
+index 2a82894..28b7769 100644
+--- a/iso8601/iso8601.py
++++ b/iso8601/iso8601.py
+@@ -54,7 +54,7 @@ ISO8601_REGEX = re.compile(
+                 ){0,1}
+             )
+         ){0,1}  # YYYY-MM
+-    ){0,1}  # YYYY only
++    )  # YYYY only
+     $
+     """,
+     re.VERBOSE,

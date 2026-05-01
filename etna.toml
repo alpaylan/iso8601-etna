@@ -1,0 +1,245 @@
+name = "iso8601"
+description = "Pure-Python ISO 8601 date/time parser (pyiso8601). Bug fixes mined from upstream history; modern HEAD is the base, each patch reverse-applies a fix to install the original bug."
+language = "python"
+crate = "iso8601"
+base_commit = "00c9262b9ad141f287b3263be7f2244fa01988c2"
+
+# ---------------------------------------------------------------------------
+# Variant: is_iso8601_returns_false_on_exception_fde429d_1
+# ---------------------------------------------------------------------------
+[[tasks]]
+mutations = ["is_iso8601_returns_false_on_exception_fde429d_1"]
+
+[tasks.source]
+repo = "https://github.com/micktwomey/pyiso8601"
+commits = ["fde429d40d82057d2507c657b9a7bbd30e369aa8"]
+commit_subjects = ["raise ParseError if we get an exception on is_iso8601()"]
+origin = "internal"
+summary = "is_iso8601() used to swallow any exception raised inside re.match (e.g. when called with a bytes-like object) and silently return False, hiding caller misuse. The fix re-raises as ParseError."
+
+[tasks.injection]
+kind = "patch"
+files = ["iso8601/iso8601.py"]
+locations = [{ file = "iso8601/iso8601.py", line = 161, symbol = "is_iso8601" }]
+patch = "patches/is_iso8601_returns_false_on_exception_fde429d_1.patch"
+
+[tasks.bug]
+short_name = "is_iso8601_silent_on_error"
+invariant = "is_iso8601(x) raises ParseError when the underlying regex match raises (e.g. bytes input); it must not silently return False."
+how_triggered = "Reverse-applying the patch swaps the ``except Exception as e: raise ParseError(e)`` body for ``except Exception: return False``. Calling ``is_iso8601(b'2007-01-25')`` then returns False instead of raising."
+
+[[tasks.tasks]]
+property = "IsIso8601RaisesOnInternalError"
+witnesses = [
+  { test_fn = "witness_is_iso8601_raises_on_internal_error_case_bytes", note = "is_iso8601(b'2007-01-25') must raise" },
+]
+
+# ---------------------------------------------------------------------------
+# Variant: year_unconstrained_dc7f577_1
+# ---------------------------------------------------------------------------
+[[tasks]]
+mutations = ["year_unconstrained_dc7f577_1"]
+
+[tasks.source]
+repo = "https://github.com/micktwomey/pyiso8601"
+commits = ["dc7f577cff153b9890337645a4e5ca7ba35bd785"]
+commit_subjects = ["Raise error when parsing year with wrong number for years"]
+origin = "internal"
+summary = "The ISO8601_REGEX year group used to be unconstrained (``[0-9]+``), so a 1-3 digit string parsed as a one-, two- or three-digit year and produced a valid datetime instead of raising ParseError. ISO 8601 requires four digits for the year."
+
+[tasks.injection]
+kind = "patch"
+files = ["iso8601/iso8601.py"]
+locations = [{ file = "iso8601/iso8601.py", line = 22, symbol = "ISO8601_REGEX" }]
+patch = "patches/year_unconstrained_dc7f577_1.patch"
+
+[tasks.bug]
+short_name = "year_unconstrained"
+invariant = "parse_date(s) raises ParseError for any string s whose year portion is not exactly four digits."
+how_triggered = "Reverse-applying the patch relaxes ``(?P<year>[0-9]{4})`` to ``(?P<year>[0-9]+)``. ``parse_date('999')`` then returns ``datetime(999, 1, 1)`` instead of raising."
+
+[[tasks.tasks]]
+property = "YearMustBeFourDigits"
+witnesses = [
+  { test_fn = "witness_year_must_be_four_digits_case_three_digit", note = "parse_date('999') must raise ParseError" },
+]
+
+# ---------------------------------------------------------------------------
+# Variant: regex_requires_full_date_6d33d31_1
+# ---------------------------------------------------------------------------
+[[tasks]]
+mutations = ["regex_requires_full_date_6d33d31_1"]
+
+[tasks.source]
+repo = "https://github.com/micktwomey/pyiso8601"
+commits = ["6d33d31529dcc0217caf2febc3f2806cd1ed87e4"]
+commit_subjects = ["Fix parsing of YYYY-MM and add YYYY"]
+origin = "internal"
+summary = "The regex used to require both month and day. Plain ``YYYY`` (and ``YYYY-MM``) failed to parse with ParseError. The fix made the month/day group optional via ``){0,1}  # YYYY only`` so a bare year string parses as January 1 of that year."
+
+[tasks.injection]
+kind = "patch"
+files = ["iso8601/iso8601.py"]
+locations = [{ file = "iso8601/iso8601.py", line = 57, symbol = "ISO8601_REGEX" }]
+patch = "patches/regex_requires_full_date_6d33d31_1.patch"
+
+[tasks.bug]
+short_name = "regex_requires_full_date"
+invariant = "parse_date('YYYY') returns datetime(YYYY, 1, 1, tzinfo=UTC) for any 4-digit year; it must not raise ParseError."
+how_triggered = "Reverse-applying the patch removes the ``{0,1}`` quantifier from the outer ``# YYYY only`` group, making the month/day branch mandatory. ``parse_date('2007')`` then raises ParseError."
+
+[[tasks.tasks]]
+property = "YearOnlyParses"
+witnesses = [
+  { test_fn = "witness_year_only_parses_case_2007", note = "parse_date('2007') must yield datetime(2007, 1, 1, ...)" },
+]
+
+# ---------------------------------------------------------------------------
+# Variant: z_uses_default_tz_704a58e_1
+# ---------------------------------------------------------------------------
+[[tasks]]
+mutations = ["z_uses_default_tz_704a58e_1"]
+
+[tasks.source]
+repo = "https://github.com/micktwomey/pyiso8601"
+commits = ["704a58e77b61d3496b36a1d14836f75796d194eb"]
+commit_subjects = ["Z always specifies UTC now"]
+origin = "internal"
+summary = "When the date string ended in ``Z`` the parser used to return ``default_timezone`` instead of UTC, so a non-UTC ``default_timezone`` argument silently overrode the explicit ``Z`` marker. The fix returns UTC unconditionally for ``Z``."
+
+[tasks.injection]
+kind = "patch"
+files = ["iso8601/iso8601.py"]
+locations = [{ file = "iso8601/iso8601.py", line = 86, symbol = "parse_timezone" }]
+patch = "patches/z_uses_default_tz_704a58e_1.patch"
+
+[tasks.bug]
+short_name = "z_uses_default_tz"
+invariant = "parse_date(s, default_timezone=tz).utcoffset() == timedelta(0) whenever s ends in 'Z', for any tz."
+how_triggered = "Reverse-applying the patch flips ``return UTC`` back to ``return default_timezone`` inside the ``if tz == 'Z':`` branch of parse_timezone. Then a Z-suffixed date with a non-UTC default_timezone is parsed in that timezone."
+
+[[tasks.tasks]]
+property = "ZIsAlwaysUtc"
+witnesses = [
+  { test_fn = "witness_z_is_always_utc_case_plus_five_thirty", note = "parse_date('...Z', default_timezone=FixedOffset(5,30,...)) utcoffset must be 0" },
+]
+
+# ---------------------------------------------------------------------------
+# Variant: negative_tz_minutes_dropped_d724fec_1
+# ---------------------------------------------------------------------------
+[[tasks]]
+mutations = ["negative_tz_minutes_dropped_d724fec_1"]
+
+[tasks.source]
+repo = "https://github.com/micktwomey/pyiso8601"
+commits = ["d724fec9ab004cf4e7fa8159764c12990a1050db"]
+commit_subjects = ["Handle negative timezone offsets correctly"]
+origin = "internal"
+summary = "For negative timezone offsets the parser used to negate the hour but leave the minute positive, so an offset of ``-01:30`` resolved to ``-60 + 30 = -30`` minutes instead of ``-90``. The fix negates both."
+
+[tasks.injection]
+kind = "patch"
+files = ["iso8601/iso8601.py"]
+locations = [{ file = "iso8601/iso8601.py", line = 98, symbol = "parse_timezone" }]
+patch = "patches/negative_tz_minutes_dropped_d724fec_1.patch"
+
+[tasks.bug]
+short_name = "negative_tz_minutes_dropped"
+invariant = "parse_date('...-HH:MM').utcoffset() == -timedelta(hours=HH, minutes=MM) for HH>=1 and MM>=1."
+how_triggered = "Reverse-applying the patch deletes the ``minutes = -minutes`` line in parse_timezone. ``parse_date('2007-01-25T12:00:00-01:30').utcoffset()`` then equals ``-timedelta(hours=1, minutes=-30)`` (i.e. -30 minutes)."
+
+[[tasks.tasks]]
+property = "NegativeTimezoneMinutesNegated"
+witnesses = [
+  { test_fn = "witness_negative_timezone_minutes_negated_case_minus_one_thirty", note = "-01:30 must yield exactly -90 minutes" },
+]
+
+# ---------------------------------------------------------------------------
+# Variant: microsecond_float_rounding_81ff287_1
+# ---------------------------------------------------------------------------
+[[tasks]]
+mutations = ["microsecond_float_rounding_81ff287_1"]
+
+[tasks.source]
+repo = "https://github.com/micktwomey/pyiso8601"
+commits = ["81ff287384424cda10f087a25e2e104d2c02532a"]
+commit_subjects = ["Fix microsecond rounding issues"]
+origin = "internal"
+summary = "The original microsecond computation used ``int(float('0.<frac>') * 1e6)``, whose binary float representation off-by-ones for many fractions (e.g. ``0.502099`` becomes 502098). The fix uses ``Decimal`` arithmetic to preserve all six digits."
+
+[tasks.injection]
+kind = "patch"
+files = ["iso8601/iso8601.py"]
+locations = [{ file = "iso8601/iso8601.py", line = 144, symbol = "parse_date" }]
+patch = "patches/microsecond_float_rounding_81ff287_1.patch"
+
+[tasks.bug]
+short_name = "microsecond_float_rounding"
+invariant = "For any 6-digit fraction F, parse_date(f'2007-01-25T12:00:00.{F}Z').microsecond == int(F)."
+how_triggered = "Reverse-applying the patch swaps the Decimal multiplication for ``int(float(...) * 1e6)``. ``parse_date('2007-01-25T12:00:00.502099Z').microsecond`` then equals 502098."
+
+[[tasks.tasks]]
+property = "MicrosecondPreservesAllDigits"
+witnesses = [
+  { test_fn = "witness_microsecond_preserves_all_digits_case_502099", note = "fraction .502099 must produce microsecond=502099" },
+]
+
+# ---------------------------------------------------------------------------
+# Variant: parse_date_unwrapped_value_error_4e89389_1
+# ---------------------------------------------------------------------------
+[[tasks]]
+mutations = ["parse_date_unwrapped_value_error_4e89389_1"]
+
+[tasks.source]
+repo = "https://github.com/micktwomey/pyiso8601"
+commits = ["4e893893e92f8383deffe8093877f13127fed4f3"]
+commit_subjects = ["Correctly raise ParseError for more invalid inputs"]
+origin = "internal"
+summary = "When the regex matched but datetime construction itself raised (e.g. month=13 -> ValueError('month must be in 1..12')), the bare ValueError used to leak out of parse_date. The fix wraps it as ParseError so callers can use a single exception type."
+
+[tasks.injection]
+kind = "patch"
+files = ["iso8601/iso8601.py"]
+locations = [{ file = "iso8601/iso8601.py", line = 149, symbol = "parse_date" }]
+patch = "patches/parse_date_unwrapped_value_error_4e89389_1.patch"
+
+[tasks.bug]
+short_name = "parse_date_unwrapped_value_error"
+invariant = "parse_date(s) raises only ParseError (or returns) for any string s — never bare ValueError or TypeError from the underlying datetime constructor."
+how_triggered = "Reverse-applying the patch flips the bottom ``except Exception as e: raise ParseError(e)`` body to ``raise e`` (re-raises the original). ``parse_date('2007-13-25')`` then raises ValueError, not ParseError."
+
+[[tasks.tasks]]
+property = "ParseDateWrapsValueError"
+witnesses = [
+  { test_fn = "witness_parse_date_wraps_value_error_case_month_thirteen", note = "month=13 must raise ParseError, not bare ValueError" },
+]
+
+# ---------------------------------------------------------------------------
+# Variant: parse_error_not_value_error_4498905_1
+# ---------------------------------------------------------------------------
+[[tasks]]
+mutations = ["parse_error_not_value_error_4498905_1"]
+
+[tasks.source]
+repo = "https://github.com/micktwomey/pyiso8601"
+commits = ["4498905f0d6e1e3895ae24ea9b896a4a3a11b3a1"]
+commit_subjects = ["Derive `ParseError` from `ValueError`"]
+origin = "internal"
+summary = "ParseError used to extend ``Exception`` directly, so callers using the stdlib-style ``except ValueError`` for ``strptime``/``json.loads`` did not catch ISO 8601 parse failures. The fix re-bases ParseError on ValueError to bring it in line with stdlib parsers."
+
+[tasks.injection]
+kind = "patch"
+files = ["iso8601/iso8601.py"]
+locations = [{ file = "iso8601/iso8601.py", line = 64, symbol = "ParseError" }]
+patch = "patches/parse_error_not_value_error_4498905_1.patch"
+
+[tasks.bug]
+short_name = "parse_error_not_value_error"
+invariant = "iso8601.ParseError is a subclass of ValueError, so ``except ValueError`` catches every parse_date failure."
+how_triggered = "Reverse-applying the patch changes ``class ParseError(ValueError)`` to ``class ParseError(Exception)``. A caller doing ``try: parse_date('garbage') except ValueError`` then sees the ParseError propagate uncaught."
+
+[[tasks.tasks]]
+property = "ParseErrorIsValueError"
+witnesses = [
+  { test_fn = "witness_parse_error_is_value_error_case_garbage", note = "ParseError must be caught by `except ValueError`" },
+]

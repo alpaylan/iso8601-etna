@@ -1,0 +1,12 @@
+diff --git a/iso8601/iso8601.py b/iso8601/iso8601.py
+index 2a82894..d822f10 100644
+--- a/iso8601/iso8601.py
++++ b/iso8601/iso8601.py
+@@ -158,5 +158,5 @@ def is_iso8601(datestring: str) -> bool:
+     try:
+         m = ISO8601_REGEX.match(datestring)
+         return bool(m)
+-    except Exception as e:
+-        raise ParseError(e)
++    except Exception:
++        return False

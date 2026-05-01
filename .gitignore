@@ -14,3 +14,25 @@ devenv.local.nix
 
 .direnv
 .venv
+
+# etna-ify additions
+progress.jsonl
+.hegel/
+.pytest_cache/
+.ruff_cache/
+etna/__pycache__/
+etna/.venv/
+etna/dist/
+etna/*.egg-info/
+etna.log
+etna.log
+/.hegel
+/etna.log
+/progress.jsonl
+/.marauders
+/uv.lock
+/etna/.venv
+/etna/etna.log
+/etna/.hypothesis
+__pycache__/
+*.egg-info/

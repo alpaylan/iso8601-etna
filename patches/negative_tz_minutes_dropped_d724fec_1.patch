@@ -1,0 +1,12 @@
+diff --git a/iso8601/iso8601.py b/iso8601/iso8601.py
+index 2a82894..7710510 100644
+--- a/iso8601/iso8601.py
++++ b/iso8601/iso8601.py
+@@ -95,7 +95,6 @@ def parse_timezone(
+     description = f"{sign}{hours:02d}:{minutes:02d}"
+     if sign == "-":
+         hours = -hours
+-        minutes = -minutes
+     return FixedOffset(hours, minutes, description)
+ 
+ 

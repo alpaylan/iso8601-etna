@@ -1,0 +1,13 @@
+diff --git a/iso8601/iso8601.py b/iso8601/iso8601.py
+index 2a82894..95305c4 100644
+--- a/iso8601/iso8601.py
++++ b/iso8601/iso8601.py
+@@ -18,7 +18,7 @@ __all__ = ["parse_date", "ParseError", "UTC", "FixedOffset"]
+ # Adapted from http://delete.me.uk/2005/03/iso8601.html
+ ISO8601_REGEX = re.compile(
+     r"""
+-    (?P<year>[0-9]{4})
++    (?P<year>[0-9]+)
+     (
+         (
+             (-(?P<monthdash>[0-9]{1,2}))

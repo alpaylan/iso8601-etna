@@ -1,0 +1,13 @@
+diff --git a/iso8601/iso8601.py b/iso8601/iso8601.py
+index 2a82894..e5fb70b 100644
+--- a/iso8601/iso8601.py
++++ b/iso8601/iso8601.py
+@@ -141,7 +141,7 @@ def parse_date(
+             minute=int(groups.get("minute", 0)),
+             second=int(groups.get("second", 0)),
+             microsecond=int(
+-                Decimal(f"0.{groups.get('second_fraction', 0)}") * Decimal("1000000.0")
++                float(f"0.{groups.get('second_fraction', 0)}") * 1e6
+             ),
+             tzinfo=parse_timezone(groups, default_timezone=default_timezone),
+         )
