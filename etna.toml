@@ -1,6 +1,7 @@
 name = "iso8601"
 description = "Pure-Python ISO 8601 date/time parser (pyiso8601). Bug fixes mined from upstream history; modern HEAD is the base, each patch reverse-applies a fix to install the original bug."
 language = "python"
+strategies = ["hypothesis", "crosshair"]
 crate = "iso8601"
 base_commit = "00c9262b9ad141f287b3263be7f2244fa01988c2"
 
